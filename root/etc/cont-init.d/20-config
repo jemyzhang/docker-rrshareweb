@@ -5,29 +5,31 @@ mkdir -p \
 	/mnt \
 	/rrshare
 
-# copy
-if [[ -f /rrshare/rrshareweb ]]; then
-	checksum=`md5sum /rrshare/rrshareweb | cut -d " " -f 1`
-	if [[ $checksum == "c11d06f976af6f1e7b428b1f38f492cb" ]]; then
-		echo "Already the latest version"
-	elif [[ $checksum == "9ca4d0817919df08cca2b332b3df4311" ]]; then
-		echo "Already the latest version"
-	else
-		if [[ `uname -m` == "x86_64" ]]; then
-			cp -rf /defaults/x64/* /rrshare/ && echo "Install x64 ..."
-		else
-			cp -rf /defaults/x86/* /rrshare/ && echo "Install x86 ..."
-		fi
-	fi
-else
-	if [[ `uname -m` == "x86_64" ]]; then
-		cp -rf /defaults/x64/* /rrshare/ && echo "Install x64 ..."
-	else
-		cp -rf /defaults/x86/* /rrshare/ && echo "Install x86 ..."
-	fi
+HOST_MACHINE=$(uname -m)
+DEFAULT_PACKAGE_PATH=/defaults/$HOST_MACHINE
+UPGRADE_PACKAGE_PATH=/upgrades/$HOST_MACHINE
+
+# install default
+if [ ! -f /rrshare/rrshareweb ]; then
+  echo "Installing ${HOST_MACHINE} ..."
+  cp -af ${DEFAULT_PACKAGE_PATH}/* /rrshare/
+  # set permissions
+  chown -R abc:abc \
+      /rrshare \
+      /mnt
 fi
 
-# permissions
-chown -R abc:abc \
-	/rrshare \
-	/mnt
+# check upgrade
+if [ -f ${UPGRADE_PACKAGE_PATH}/rrshareweb ]; then
+  checksum_src=$(md5sum /rrshare/rrshareweb | cut -d " " -f 1)
+  checksum_dst=$(md5sum ${UPGRADE_PACKAGE_PATH}/rrshareweb | cut -d " " -f 1)
+  if [ ! $checksum_src = $checksum_dst ]; then
+    echo "Upgrading ${HOST_MACHINE} ..."
+    cp -af ${UPGRADE_PACKAGE_PATH}/* /rrshare/
+    # set permissions
+    chown -R abc:abc \
+        /rrshare \
+        /mnt
+  fi
+fi
+
